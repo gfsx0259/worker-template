@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Service;
+namespace Enthusiast\WorkerTemplate;
 
 use Interop\Queue\Consumer;
 use Interop\Queue\Message;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Enthusiast\WorkerTemplate;
 
-use App\Service\BatchProcessorInterface;
 use Exception;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
