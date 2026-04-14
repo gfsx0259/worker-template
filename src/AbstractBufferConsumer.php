@@ -1,0 +1,113 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Enthusiast\WorkerTemplate;
+
+use App\Service\BatchProcessorInterface;
+use Exception;
+use Interop\Queue\Consumer;
+use Interop\Queue\Context;
+use Interop\Queue\Message;
+use OpenTelemetry\API\Trace\Span;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Yiisoft\Yii\Console\ExitCode;
+
+/**
+ * Базовый класс для воркеров с накоплением данных (batching)
+ */
+abstract class AbstractBufferedConsumer extends Command
+{
+    private ?Consumer $consumer = null;
+
+    public function __construct(
+        private readonly Context $transportContext,
+        protected readonly LoggerInterface $logger,
+        protected readonly MetricsAggregatorInterface $metricsAggregator,
+        protected readonly BatchProcessorInterface $batchProcessor,
+        private readonly string $inputTopic,
+    ) {
+        parent::__construct();
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $this->consumer = $this->transportContext->createConsumer(
+            $this->transportContext->createQueue($this->inputTopic)
+        );
+
+        $running = true;
+
+        pcntl_signal(SIGTERM, function () use (&$running, $output) {
+            $output->writeln("\n⚠️  Received SIGTERM, shutting down...");
+            $running = false;
+
+            if ($this->batchProcessor->flush()) {
+                $this->batchProcessor->acknowledgeAndClear($this->consumer);
+            }
+        });
+        pcntl_signal(SIGINT, function () use (&$running, $output) {
+            $output->writeln("\n⚠️  Received SIGINT, shutting down...");
+            $running = false;
+        });
+
+        $output->writeln("🚀 Consumer started. Press Ctrl+C to stop.\n");
+
+        while ($running) {
+            pcntl_signal_dispatch();
+
+            try {
+                $message = $this->consumer->receive(500);
+
+                // Heartbeat: if no message, try flash
+                if ($message === null) {
+                    if ($this->batchProcessor->shouldFlush() && $this->batchProcessor->flush()) {
+                        $this->batchProcessor->acknowledgeAndClear($this->consumer);
+                    }
+                    continue;
+                }
+
+                $span = Span::getCurrent();
+                $spanScope = $span->activate();
+                $processingStart = hrtime(true);
+                $metricsTags = [];
+
+                try {
+                    $metricsTags = $this->processMessage($message);
+                } catch (Exception $e) {
+                    $this->logger->error("Processing failed: " . $e->getMessage());
+                } finally {
+                    $durationMs = (hrtime(true) - $processingStart) / 1e6;
+                    $this->metricsAggregator->recordProcessingTime($durationMs, $metricsTags);
+
+                    $spanScope->detach();
+                    $span->end();
+                }
+
+                if ($this->batchProcessor->shouldFlush() && $this->batchProcessor->flush()) {
+                    $this->batchProcessor->acknowledgeAndClear($this->consumer);
+                }
+            } catch (Exception $e) {
+                $this->logger->error("Kafka error: " . $e->getMessage());
+                sleep(2);
+            }
+        }
+
+        // 6. Финальный сброс перед выходом
+        $output->writeln("🛑 Stopping... Flushing remaining data.");
+        if ($this->batchProcessor->flush()) {
+            $this->batchProcessor->acknowledgeAndClear($this->consumer);
+        }
+
+        return ExitCode::OK;
+    }
+
+    /**
+     * Метод, который должны реализовать дочерние воркеры.
+     * Должен возвращать теги для метрик (например, ['matched' => 'true']).
+     */
+    abstract protected function processMessage(Message $message): array;
+}

@@ -4,7 +4,9 @@
     "type": "library",
     "require": {
         "php": "^8.4",
-        "open-telemetry/sdk": "^1.14"
+        "open-telemetry/sdk": "^1.14",
+        "enqueue/rdkafka": "^0.10.27",
+        "yiisoft/yii-console": "^2.4"
     },
     "autoload": {
         "psr-4": {
