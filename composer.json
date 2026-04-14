@@ -1,0 +1,36 @@
+{
+    "name": "enthusiast/worker-template",
+    "description": "Base worker parts",
+    "type": "library",
+    "require": {
+        "php": "^8.4",
+        "open-telemetry/sdk": "^1.14"
+    },
+    "autoload": {
+        "psr-4": {
+            "Enthusiast\\WorkerTemplate\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Konstantin Popov",
+            "email": "konstantin.icreative@gmail.com"
+        }
+    ],
+    "extra": {
+        "config-plugin-options": {
+            "source-directory": "config"
+        },
+        "config-plugin": {
+            "di": "common.php",
+            "params": "params.php"
+        }
+    },
+    "minimum-stability": "stable",
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": false,
+            "tbachert/spi": false
+        }
+    }
+}
