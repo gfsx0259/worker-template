@@ -20,7 +20,7 @@ use Yiisoft\Yii\Console\ExitCode;
  */
 abstract class AbstractBufferedConsumer extends Command
 {
-    private ?Consumer $consumer = null;
+    protected ?Consumer $consumer = null;
 
     public function __construct(
         private readonly Context $transportContext,

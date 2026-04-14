@@ -28,4 +28,12 @@ interface BatchProcessorInterface
      * Подтверждает все сообщения из буфера и очищает его
      */
     public function acknowledgeAndClear(Consumer $consumer): void;
+
+    /**
+     * В сложных аггрегациях, где мы сбрасываем не всё, а по ключу - нужно уметь чистить зависшие данные
+     *
+     * @param callable $ack
+     * @return void
+     */
+    public function cleanUp(callable $ack): void;
 }
