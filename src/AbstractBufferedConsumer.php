@@ -89,6 +89,8 @@ abstract class AbstractBufferedConsumer extends Command
                 if ($this->batchProcessor->shouldFlush() && $this->batchProcessor->flush()) {
                     $this->batchProcessor->acknowledgeAndClear($this->consumer);
                 }
+
+                $this->batchProcessor->cleanUp(fn (Message $message) => $this->consumer->acknowledge($message));
             } catch (Exception $e) {
                 $this->logger->error("Kafka error: " . $e->getMessage());
                 sleep(2);
