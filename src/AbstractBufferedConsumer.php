@@ -13,6 +13,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 use Yiisoft\Yii\Console\ExitCode;
 
 /**
@@ -43,10 +44,6 @@ abstract class AbstractBufferedConsumer extends Command
         pcntl_signal(SIGTERM, function () use (&$running, $output) {
             $output->writeln("\n⚠️  Received SIGTERM, shutting down...");
             $running = false;
-
-            if ($this->batchProcessor->flush()) {
-                $this->batchProcessor->acknowledgeAndClear($this->consumer);
-            }
         });
         pcntl_signal(SIGINT, function () use (&$running, $output) {
             $output->writeln("\n⚠️  Received SIGINT, shutting down...");
@@ -61,7 +58,6 @@ abstract class AbstractBufferedConsumer extends Command
             try {
                 $message = $this->consumer->receive(500);
 
-                // Heartbeat: if no message, try flash
                 if ($message === null) {
                     if ($this->batchProcessor->shouldFlush() && $this->batchProcessor->flush()) {
                         $this->batchProcessor->acknowledgeAndClear($this->consumer);
@@ -71,18 +67,22 @@ abstract class AbstractBufferedConsumer extends Command
 
                 $span = Span::getCurrent();
                 $spanScope = $span->activate();
+
                 $processingStart = hrtime(true);
-                $metricsTags = [];
+
+                $tags = [];
 
                 try {
-                    $metricsTags = $this->processMessage($message);
+                    $tags = $this->processMessage($message);
                 } catch (Exception $e) {
                     $this->logger->error("Processing failed: " . $e->getMessage());
                 } finally {
-                    $durationMs = (hrtime(true) - $processingStart) / 1e6;
-                    $this->metricsAggregator->recordProcessingTime($durationMs, $metricsTags);
+                    $this->metricsAggregator->recordProcessingTime((hrtime(true) - $processingStart) / 1e6, $tags);
 
-                    $spanScope->detach();
+                    try {
+                        $spanScope->detach();
+                    } catch (Throwable) {}
+
                     $span->end();
                 }
 
@@ -97,8 +97,8 @@ abstract class AbstractBufferedConsumer extends Command
             }
         }
 
-        // 6. Финальный сброс перед выходом
         $output->writeln("🛑 Stopping... Flushing remaining data.");
+
         if ($this->batchProcessor->flush()) {
             $this->batchProcessor->acknowledgeAndClear($this->consumer);
         }
