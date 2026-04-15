@@ -9,31 +9,24 @@ use Interop\Queue\Message;
 
 interface BatchProcessorInterface
 {
-    /**
-     * Проверяет, нужно ли сбросить накопленные данные
-     */
-    public function shouldFlush(): bool;
+    /** Принимает функцию подтверждения от транспорта */
+    public function configure(callable $ackCallback): void;
 
-    /**
-     * Выполняет сброс данных в БД/хранилище
-     */
-    public function flush(): bool;
+    /** Вызывается когда очередь пуста (таймаут receive) */
+    public function onIdle(): void;
 
-    /**
-     * Добавляет сообщение в буфер для отложенного ACK
-     */
+    /** Вызывается после обработки каждого сообщения */
+    public function onAfterMessage(Message $message, array $tags): void;
+
+    /** Вызывается каждый цикл (внутри процессора своя логика таймера) */
+    public function onCleanup(): void;
+
+    /** Вызывается перед завершением работы воркера */
+    public function onShutdown(): void;
+
+    /** Добавляет сообщение в буфер ожидания подтверждения */
     public function addPendingMessage(Message $message): void;
 
-    /**
-     * Подтверждает все сообщения из буфера и очищает его
-     */
+    /** Подтверждает все накопленные сообщения и очищает буфер */
     public function acknowledgeAndClear(Consumer $consumer): void;
-
-    /**
-     * В сложных аггрегациях, где мы сбрасываем не всё, а по ключу - нужно уметь чистить зависшие данные
-     *
-     * @param callable $ack
-     * @return void
-     */
-    public function cleanUp(callable $ack): void;
 }

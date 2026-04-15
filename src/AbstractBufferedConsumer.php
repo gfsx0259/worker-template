@@ -13,7 +13,6 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Throwable;
 use Yiisoft\Yii\Console\ExitCode;
 
 /**
@@ -39,6 +38,8 @@ abstract class AbstractBufferedConsumer extends Command
             $this->transportContext->createQueue($this->inputTopic)
         );
 
+        $this->batchProcessor->configure(fn (Message $message) => $this->consumer->acknowledge($message));
+
         $running = true;
 
         pcntl_signal(SIGTERM, function () use (&$running, $output) {
@@ -59,16 +60,14 @@ abstract class AbstractBufferedConsumer extends Command
                 $message = $this->consumer->receive(500);
 
                 if ($message === null) {
-                    if ($this->batchProcessor->shouldFlush() && $this->batchProcessor->flush()) {
-                        $this->batchProcessor->acknowledgeAndClear($this->consumer);
-                    }
+                    $this->batchProcessor->onIdle();
                     continue;
                 }
 
                 $span = Span::getCurrent();
                 $spanScope = $span->activate();
 
-                $processingStart = hrtime(true);
+                $startTime = hrtime(true);
 
                 $tags = [];
 
@@ -77,20 +76,14 @@ abstract class AbstractBufferedConsumer extends Command
                 } catch (Exception $e) {
                     $this->logger->error("Processing failed: " . $e->getMessage());
                 } finally {
-                    $this->metricsAggregator->recordProcessingTime((hrtime(true) - $processingStart) / 1e6, $tags);
+                    $this->metricsAggregator->recordProcessingTime((hrtime(true) - $startTime) / 1e6, $tags);
 
-                    try {
-                        $spanScope->detach();
-                    } catch (Throwable) {}
-
+                    @$spanScope->detach();
                     $span->end();
                 }
 
-                if ($this->batchProcessor->shouldFlush() && $this->batchProcessor->flush()) {
-                    $this->batchProcessor->acknowledgeAndClear($this->consumer);
-                }
-
-                $this->batchProcessor->cleanUp(fn (Message $message) => $this->consumer->acknowledge($message));
+                $this->batchProcessor->onAfterMessage($message, $tags);
+                $this->batchProcessor->onCleanup();
             } catch (Exception $e) {
                 $this->logger->error("Kafka error: " . $e->getMessage());
                 sleep(2);
@@ -99,9 +92,7 @@ abstract class AbstractBufferedConsumer extends Command
 
         $output->writeln("🛑 Stopping... Flushing remaining data.");
 
-        if ($this->batchProcessor->flush()) {
-            $this->batchProcessor->acknowledgeAndClear($this->consumer);
-        }
+        $this->batchProcessor->onShutdown();
 
         return ExitCode::OK;
     }
