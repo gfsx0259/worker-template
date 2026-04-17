@@ -13,6 +13,8 @@ trait BatchProcessorLifecycleDefaults
      */
     private $ackCallback = null;
 
+    private array $pendingMessages = [];
+
     public function configure(callable $ackCallback): void
     {
         $this->ackCallback = $ackCallback;
@@ -24,6 +26,11 @@ trait BatchProcessorLifecycleDefaults
         if ($this->ackCallback !== null) {
             ($this->ackCallback)($message);
         }
+    }
+
+    public function addPendingMessage(Message $message): void
+    {
+        $this->pendingMessages[] = $message;
     }
 
     public function onIdle(): void {}
