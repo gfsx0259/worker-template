@@ -20,31 +20,35 @@ class RedisFactory
 
         $masterAddr = null;
 
-        foreach ($sentinels as $sentinelInfo) {
-            [$host, $port] = $sentinelInfo;
+        if (count($sentinels) > 1) {
+            foreach ($sentinels as $sentinelInfo) {
+                [$host, $port] = $sentinelInfo;
 
-            try {
-                $sentinelClient = new RedisSentinel([
-                    'host' => $host,
-                    'port' => (int) $port,
-                    'connectTimeout' => 1,
-                    'readTimeout' => 1,
-                    'retryInterval' => 100,
-                ]);
+                try {
+                    $sentinelClient = new RedisSentinel([
+                        'host' => $host,
+                        'port' => (int) $port,
+                        'connectTimeout' => 1,
+                        'readTimeout' => 1,
+                        'retryInterval' => 100,
+                    ]);
 
-                $masterAddr = $sentinelClient->getMasterAddrByName($masterName);
+                    $masterAddr = $sentinelClient->getMasterAddrByName($masterName);
 
-                if ($masterAddr) {
-                    break;
+                    if ($masterAddr) {
+                        break;
+                    }
+                } catch (Throwable $e) {
+                    echo $e->getMessage();
+                    continue;
                 }
-            } catch (Throwable $e) {
-                echo $e->getMessage();
-                continue;
             }
-        }
 
-        if ($masterAddr === null) {
-            throw new RuntimeException('Redis Sentinel: Could not find master, check network and group name');
+            if ($masterAddr === null) {
+                throw new RuntimeException('Redis Sentinel: Could not find master, check network and group name');
+            }
+        } else {
+            $masterAddr = $sentinels[0];
         }
 
         $redis = new Redis();
