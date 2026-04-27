@@ -11,7 +11,7 @@ use Throwable;
 
 class RedisFactory
 {
-    public static function getRedis(string $hostsString, ?string $password = null, string $masterName = 'mymaster'): Redis
+    public static function getRedis(string $hostsString, ?string $password = null, ?string $persistentId = null, string $masterName = 'mymaster'): Redis
     {
         $sentinels = array_map(
             fn ($hostString) => explode(':', $hostString),
@@ -24,7 +24,13 @@ class RedisFactory
             [$host, $port] = $sentinelInfo;
 
             try {
-                $sentinelClient = new RedisSentinel($host, (int) $port);
+                $sentinelClient = new RedisSentinel([
+                    'host' => $host,
+                    'port' => (int) $port,
+                    'connectTimeout' => 1,
+                    'readTimeout' => 1,
+                    'retryInterval' => 100,
+                ]);
 
                 $masterAddr = $sentinelClient->getMasterAddrByName($masterName);
 
@@ -43,8 +49,14 @@ class RedisFactory
 
         $redis = new Redis();
 
-        if (!$redis->connect($masterAddr[0], (int) $masterAddr[1])) {
-            throw new RuntimeException("Redis: Could not connect to master $masterAddr[0]:$masterAddr[1]");
+        if ($persistentId) {
+            if (!$redis->pconnect($masterAddr[0], (int) $masterAddr[1], 1, $persistentId)) {
+                throw new RuntimeException("Redis: Could not connect to master $masterAddr[0]:$masterAddr[1]");
+            }
+        } else {
+            if (!$redis->connect($masterAddr[0], (int) $masterAddr[1])) {
+                throw new RuntimeException("Redis: Could not connect to master $masterAddr[0]:$masterAddr[1]");
+            }
         }
 
         if ($password) {
