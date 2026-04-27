@@ -31,6 +31,7 @@ class RedisFactory
                         'connectTimeout' => 1,
                         'readTimeout' => 1,
                         'retryInterval' => 100,
+                        'auth' => $password,
                     ]);
 
                     $masterAddr = $sentinelClient->getMasterAddrByName($masterName);
