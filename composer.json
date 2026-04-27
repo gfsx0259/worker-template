@@ -5,6 +5,7 @@
     "require": {
         "php": "^8.4",
         "ext-pcntl": "*",
+        "ext-redis": "*",
         "open-telemetry/sdk": "^1.14",
         "enqueue/rdkafka": "^0.10.27",
         "yiisoft/yii-console": "^2.4"
