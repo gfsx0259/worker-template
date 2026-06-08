@@ -17,7 +17,7 @@ use RuntimeException;
  * Предназначен для долгоживущих воркеров: при failover адрес master меняется,
  * поэтому при ошибке соединения клиент заново опрашивает Sentinel.
  */
-final class RedisClientResilient
+final class RedisClientResilient implements RedisClientInterface
 {
     private const float CONNECT_TIMEOUT = 1.0;
     private const float READ_TIMEOUT = 1.0;
