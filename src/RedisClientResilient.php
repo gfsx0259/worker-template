@@ -53,6 +53,42 @@ final class RedisClientResilient implements RedisClientInterface
         return $this->redis?->getLastError() ?: null;
     }
 
+    public function clearLastError(): void
+    {
+        $this->redis?->clearLastError();
+    }
+
+    /**
+     * @param list<string> $args
+     */
+    public function eval(string $script, array $args, int $numKeys): mixed
+    {
+        return $this->execute(static fn (Redis $redis): mixed => $redis->eval($script, $args, $numKeys));
+    }
+
+    /**
+     * @param array<int|string, mixed>|int|null $options
+     */
+    public function set(string $key, mixed $value, array|int|null $options = null): string|bool
+    {
+        return $this->execute(static fn (Redis $redis): string|bool => $redis->set($key, $value, $options));
+    }
+
+    public function del(string ...$keys): int|false
+    {
+        return $this->execute(static fn (Redis $redis): int|false => $redis->del(...$keys));
+    }
+
+    public function exists(string $key): bool|int
+    {
+        return $this->execute(static fn (Redis $redis): bool|int => $redis->exists($key));
+    }
+
+    public function zRem(string $key, mixed ...$members): int|false
+    {
+        return $this->execute(static fn (Redis $redis): int|false => $redis->zRem($key, ...$members));
+    }
+
     /**
      * @template T
      * @param callable(Redis): T $callback
