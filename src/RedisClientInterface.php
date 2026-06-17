@@ -27,4 +27,14 @@ interface RedisClientInterface
     public function exists(string $key): bool|int;
 
     public function zRem(string $key, mixed ...$members): int|false;
+
+    public function zAdd(string $key, float $score, string $member): int|false;
+
+    public function hMSet(string $key, array $fields): bool;
+
+    public function expire(string $key, int $ttl): bool;
+
+    public function multi(int $mode = \Redis::MULTI): mixed;
+
+    public function exec(): array|false;
 }

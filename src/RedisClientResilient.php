@@ -89,6 +89,31 @@ final class RedisClientResilient implements RedisClientInterface
         return $this->execute(static fn (Redis $redis): int|false => $redis->zRem($key, ...$members));
     }
 
+    public function zAdd(string $key, float $score, string $member): int|false
+    {
+        return $this->execute(static fn (Redis $redis): int|false => $redis->zAdd($key, $score, $member));
+    }
+
+    public function hMSet(string $key, array $fields): bool
+    {
+        return $this->execute(static fn (Redis $redis): bool => $redis->hMSet($key, $fields));
+    }
+
+    public function expire(string $key, int $ttl): bool
+    {
+        return $this->execute(static fn (Redis $redis): bool => $redis->expire($key, $ttl));
+    }
+
+    public function multi(int $mode = \Redis::MULTI): mixed
+    {
+        return $this->execute(static fn (Redis $redis): mixed => $redis->multi($mode));
+    }
+
+    public function exec(): array|false
+    {
+        return $this->execute(static fn (Redis $redis): array|false => $redis->exec());
+    }
+
     /**
      * @template T
      * @param callable(Redis): T $callback
