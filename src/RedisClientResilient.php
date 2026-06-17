@@ -69,44 +69,44 @@ final class RedisClientResilient implements RedisClientInterface
     /**
      * @param array<int|string, mixed>|int|null $options
      */
-    public function set(string $key, mixed $value, array|int|null $options = null): string|bool
+    public function set(string $key, mixed $value, array|int|null $options = null): Redis|string|bool
     {
-        return $this->execute(static fn (Redis $redis): string|bool => $redis->set($key, $value, $options));
+        return $this->execute(static fn (Redis $redis): mixed => $redis->set($key, $value, $options));
     }
 
-    public function del(string ...$keys): int|false
+    public function del(string ...$keys): Redis|int|false
     {
-        return $this->execute(static fn (Redis $redis): int|false => $redis->del(...$keys));
+        return $this->execute(static fn (Redis $redis): mixed => $redis->del(...$keys));
     }
 
-    public function exists(string $key): bool|int
+    public function exists(string $key): Redis|bool|int
     {
-        return $this->execute(static fn (Redis $redis): bool|int => $redis->exists($key));
+        return $this->execute(static fn (Redis $redis): mixed => $redis->exists($key));
     }
 
-    public function zRem(string $key, mixed ...$members): int|false
+    public function zRem(string $key, mixed ...$members): Redis|int|false
     {
-        return $this->execute(static fn (Redis $redis): int|false => $redis->zRem($key, ...$members));
+        return $this->execute(static fn (Redis $redis): mixed => $redis->zRem($key, ...$members));
     }
 
-    public function zAdd(string $key, float $score, string $member): int|false
+    public function zAdd(string $key, float $score, string $member): Redis|int|false
     {
-        return $this->execute(static fn (Redis $redis): int|false => $redis->zAdd($key, $score, $member));
+        return $this->execute(static fn (Redis $redis): mixed => $redis->zAdd($key, $score, $member));
     }
 
-    public function hMSet(string $key, array $fields): bool
+    public function hMSet(string $key, array $fields): Redis|bool
     {
-        return $this->execute(static fn (Redis $redis): bool => $redis->hMSet($key, $fields));
+        return $this->execute(static fn (Redis $redis): mixed => $redis->hMSet($key, $fields));
     }
 
-    public function expire(string $key, int $ttl): bool
+    public function expire(string $key, int $ttl): Redis|bool
     {
-        return $this->execute(static fn (Redis $redis): bool => $redis->expire($key, $ttl));
+        return $this->execute(static fn (Redis $redis): mixed => $redis->expire($key, $ttl));
     }
 
-    public function multi(int $mode = \Redis::MULTI): mixed
+    public function multi(int $mode = \Redis::MULTI): Redis|false
     {
-        return $this->execute(static fn (Redis $redis): mixed => $redis->multi($mode));
+        return $this->execute(static fn (Redis $redis): Redis|false => $redis->multi($mode));
     }
 
     public function exec(): array|false

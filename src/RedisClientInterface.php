@@ -20,21 +20,21 @@ interface RedisClientInterface
     /**
      * @param array<int|string, mixed>|int|null $options
      */
-    public function set(string $key, mixed $value, array|int|null $options = null): string|bool;
+    public function set(string $key, mixed $value, array|int|null $options = null): Redis|string|bool;
 
-    public function del(string ...$keys): int|false;
+    public function del(string ...$keys): Redis|int|false;
 
-    public function exists(string $key): bool|int;
+    public function exists(string $key): Redis|bool|int;
 
-    public function zRem(string $key, mixed ...$members): int|false;
+    public function zRem(string $key, mixed ...$members): Redis|int|false;
 
-    public function zAdd(string $key, float $score, string $member): int|false;
+    public function zAdd(string $key, float $score, string $member): Redis|int|false;
 
-    public function hMSet(string $key, array $fields): bool;
+    public function hMSet(string $key, array $fields): Redis|bool;
 
-    public function expire(string $key, int $ttl): bool;
+    public function expire(string $key, int $ttl): Redis|bool;
 
-    public function multi(int $mode = \Redis::MULTI): mixed;
+    public function multi(int $mode = \Redis::MULTI): Redis|false;
 
     public function exec(): array|false;
 }
