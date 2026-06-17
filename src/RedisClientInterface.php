@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Enthusiast\WorkerTemplate;
 
+use Redis;
+
 interface RedisClientInterface
 {
     public function rawCommand(mixed ...$args): mixed;
