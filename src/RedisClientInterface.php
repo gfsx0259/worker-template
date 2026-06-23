@@ -34,6 +34,10 @@ interface RedisClientInterface
 
     public function hMSet(string $key, array $fields): Redis|bool;
 
+    public function hGet(string $key, string $field): Redis|string|false;
+
+    public function incr(string $key): Redis|int|false;
+
     public function expire(string $key, int $ttl): Redis|bool;
 
     public function multi(int $mode = \Redis::MULTI): Redis|false;

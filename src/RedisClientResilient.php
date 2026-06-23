@@ -99,6 +99,16 @@ final class RedisClientResilient implements RedisClientInterface
         return $this->execute(static fn (Redis $redis): mixed => $redis->hMSet($key, $fields));
     }
 
+    public function hGet(string $key, string $field): Redis|string|false
+    {
+        return $this->execute(static fn (Redis $redis): mixed => $redis->hGet($key, $field));
+    }
+
+    public function incr(string $key): Redis|int|false
+    {
+        return $this->execute(static fn (Redis $redis): mixed => $redis->incr($key));
+    }
+
     public function expire(string $key, int $ttl): Redis|bool
     {
         return $this->execute(static fn (Redis $redis): mixed => $redis->expire($key, $ttl));
