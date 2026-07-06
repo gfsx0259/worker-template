@@ -124,6 +124,11 @@ final class RedisClientResilient implements RedisClientInterface
         return $this->execute(static fn (Redis $redis): array|false => $redis->exec());
     }
 
+    public function sMembers(string $key): Redis|array|false
+    {
+        return $this->execute(static fn (Redis $redis): array|false => $redis->sMembers($key));
+    }
+
     /**
      * @template T
      * @param callable(Redis): T $callback

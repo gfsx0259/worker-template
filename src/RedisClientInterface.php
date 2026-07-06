@@ -42,5 +42,7 @@ interface RedisClientInterface
 
     public function multi(int $mode = \Redis::MULTI): Redis|false;
 
+    public function sMembers(string $key): Redis|array|false;
+
     public function exec(): array|false;
 }
